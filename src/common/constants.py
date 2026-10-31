@@ -1,0 +1,67 @@
+from enum import IntEnum
+
+
+class FrameType(IntEnum):
+    DATA = 1
+    ACK = 2
+    PING = 3
+    PONG = 4
+    MAX_DATA = 5
+    MAX_STREAM_DATA = 6
+    DATA_BLOCKED = 7
+    STREAM_DATA_BLOCKED = 8
+
+
+class StreamType(IntEnum):
+    CHAT = 0
+    FILE = 1
+
+
+# application messages
+class MessageType(IntEnum):
+    AUTH = 1
+    AUTH_RESULT = 2
+    USER_LIST = 3
+    PRESENCE = 4
+    LOGOUT = 5
+
+
+class ConnectionState(IntEnum):
+    NEW = 0
+    HANDSHAKING = 1
+    ESTABLISHED = 2
+    CLOSING = 3
+    CLOSED = 4
+
+
+class CongestionPhase(IntEnum):
+    SLOW_START = 0
+    AVOIDANCE = 1
+    RECOVERY = 2
+
+
+SERVER_PORT = 9000
+CLIENT_PORT = 9100
+HTTP_PORT = 8080
+MAGIC = b"RC"
+VERSION = 3
+MAX_PACKET_SIZE = 1200
+SESSION_ID_BYTES = 16
+MAX_PACKET_NUMBER = 2**62 - 1
+MAX_U64 = 2**64 - 1
+MAX_FRAMES = 64
+MAX_ACK_RANGES = 64
+CHUNK_SIZE = 1000
+INITIAL_RTT = 0.333
+TIME_GRANULARITY = 0.001
+MAX_ACK_DELAY = 0.025
+ACK_DELAY_EXPONENT = 3
+INITIAL_SSTHRESH = 64 * 1024
+CUBIC_BETA = 0.7
+CUBIC_C = 0.4
+HEARTBEAT_INTERVAL = 5.0
+SESSION_TIMEOUT = 30.0
+MAX_CLIENTS = 20
+EVENT_QUEUE_SIZE = 256
+MAX_CHAT_BYTES = 64 * 1024
+INITIAL_RECEIVE_CAPACITY = 1024 * 1024
