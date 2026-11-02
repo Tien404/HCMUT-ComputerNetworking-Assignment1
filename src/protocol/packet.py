@@ -15,7 +15,7 @@ def parse_packet(raw: bytes):
         # ssid 16 byte
         # pn 8 byte
     i = 0;
-    while i < count:
+    while i < frame_count:
         frame_header = raw[0:4]
             # frame_type: 1B
             # flags: 1B
@@ -30,7 +30,7 @@ def parse_packet(raw: bytes):
 
 def make_packet_header(flag: int, length:int, frame_count:int, session_id: int, packet_number: int) -> bytes:
     packet = b''
-    packet += 0.to_bytes(3, "big") # reserve
+    packet += int.to_bytes(3, "big") # reserve
     packet += flag.to_bytes(1, "big")   
     packet += length.to_bytes(2, "big")
     packet += frame_count.to_bytes(2, "big")
@@ -40,8 +40,9 @@ def make_packet_header(flag: int, length:int, frame_count:int, session_id: int, 
     
     
     
-def make_packet(flag: int, ssid: int, pn: int, framelist: dict) -> bytes:
-    packet = b''.join(framelist)
+    
+def make_packet(flag: int, ssid: int, pn: int, frame_list: list) -> bytes:
+    packet = b''.join(frame_list)
     packet = make_packet_header(flag, len(packet), len(frame_list), ssid, pn) + packet
     return packet
     
