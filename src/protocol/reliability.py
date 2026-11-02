@@ -1,4 +1,5 @@
 import socket
+import time
 
 from src.common.constants import (
     FrameType,    INITIAL_RTT, MAX_ACK_DELAY, ACK_DELAY_EXPONENT,
@@ -57,12 +58,18 @@ class Sender:
                 if start <= pn <= end:
                     del self.unacked_packets[pn]
 
+
+
+    def retransmit_unacked_packets(self):
+        for packet_number, packet in self.unacked_packets.items():
+            self.endpoint.udp_send(packet, self.address)
      
 
 class Receiver:
 
     def __init__(self, address):
         self.endpoint = UnReliableSocket(address)
+        self.buffered_frames = {}
         self.largest_acked = None
         self.ranges_count = 0
         self.received_ranges = set()
@@ -86,13 +93,14 @@ class Receiver:
        self.received_ranges.add(packet_number)
 
     def get_ack_ranges(self):
+        
         ranges = []
 
         for pn in sorted(self.received_ranges):
             if ranges and pn == ranges[-1][1] + 1:
                 ranges[-1][1] = pn
             else:
-                ranges.append((pn, pn))
+                ranges.append([pn, pn])
         return ranges
     
     
@@ -104,7 +112,7 @@ class Receiver:
         ack_ranges = self.get_ack_ranges()
         ack_frame = make_ack_frame(0, self.largest_acked, self.ack_delay, len(ack_ranges), ack_ranges)
 
-
+    
     
         
 
