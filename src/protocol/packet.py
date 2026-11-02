@@ -91,6 +91,36 @@ def make_pong_frame(flag: int, ping_frame: bytes) -> bytes:
     frame = make_frame_header(FrameType.PONG, flag, frame) + frame
     return frame
 
+def decode_frame(frame_type: int, frame: bytes):
+    if frame_type == FrameType.ACK:
+        return decode_ack_frame(frame)
+    elif frame_type == FrameType.DATA:
+        return decode_data_frame(frame)
+    else:
+        raise PacketError(f"Unknown frame type: {frame_type}")
+
+def decode_ack_frame(frame: bytes):
+    largest_ack = int.from_bytes(frame[0:4], "big")
+    ack_delay = int.from_bytes(frame[4:12], "big")
+    ack_count = int.from_bytes(frame[12:14], "big")
+    ack_ranges = []
+    i = 0
+    while i < ack_count:
+        start = int.from_bytes(frame[14+i*8: 18+i*8], "big")
+        end = int.from_bytes(frame[18+i*8: 22+i*8], "big")
+        ack_ranges.append((start, end))
+        i += 1
+    return largest_ack, ack_delay, ack_count, ack_ranges
+
+def decode_data_frame(frame: bytes):
+    stream_id = int.from_bytes(frame[0:8], "big")
+    message_id = int.from_bytes(frame[8:16], "big")
+    message_start_offset = int.from_bytes(frame[16:24], "big")
+    message_length = int.from_bytes(frame[24:32], "big")
+    offset = int.from_bytes(frame[32:40], "big")
+    data = frame[40:-1]
+    typ = StreamType(int.from_bytes(frame[-1:], "big"))
+    return stream_id, message_id, message_start_offset, message_length, offset, data, typ
 
 # def make_limit_frame
 
