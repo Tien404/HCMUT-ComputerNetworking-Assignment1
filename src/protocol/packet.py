@@ -122,6 +122,13 @@ def decode_data_frame(frame: bytes):
     typ = StreamType(int.from_bytes(frame[-1:], "big"))
     return stream_id, message_id, message_start_offset, message_length, offset, data, typ
 
+def decode_packet_header(packet: bytes):
+    flag = int.from_bytes(packet[3:4], "big")
+    length = int.from_bytes(packet[4:6], "big")
+    frame_count = int.from_bytes(packet[6:8], "big")
+    session_id = int.from_bytes(packet[8:24], "big")
+    packet_number = int.from_bytes(packet[24:32], "big")
+    return flag, length, frame_count, session_id, packet_number
 # def make_limit_frame
 
 

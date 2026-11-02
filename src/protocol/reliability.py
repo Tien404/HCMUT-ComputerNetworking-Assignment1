@@ -5,7 +5,7 @@ from src.common.constants import (
     INITIAL_RECEIVE_CAPACITY, HEARTBEAT_INTERVAL, SESSION_TIMEOUT,
     StreamType, ConnectionState,
 )
-from src.protocol.packet import (parse_packet, decode_frame, make_packet, make_data_frame)
+from src.protocol.packet import (make_ack_frame, parse_packet, decode_frame, make_packet, make_data_frame, decode_packet_header)
 # from src.protocol.flow_control import new_sender_flow, new_receiver_flow
 # from src.protocol.congestion_control import new_congestion
 
@@ -54,7 +54,7 @@ class Sender:
         for range_ in ack_ranges:
             start, end = range_
             for pn in list(self.unacked_packets.keys()):
-                if start <= pn < end:
+                if start <= pn <= end:
                     del self.unacked_packets[pn]
 
      
@@ -65,28 +65,45 @@ class Receiver:
         self.endpoint = UnReliableSocket(address)
         self.largest_acked = None
         self.ranges_count = 0
-        self.received_ranges = {}
-        self.ack_delay = 0.0
+        self.received_ranges = set()
+        self.ack_delay = 0
 
     def receive_packet(self, packet):
         packet_header , frame_list = parse_packet(packet)
+
+        packet_number = decode_packet_header(packet_header)[4]
+        if packet_number in self.received_ranges:
+            return  # Duplicate packet, ignore
+        
         for frame in frame_list:
             frame_type, _ , frame_data = decode_frame(frame[0], frame[1:])
             if frame_type == FrameType.DATA:
                 self.handle_data_frame(frame_data)
 
+        self.update_ack(packet_number)  
+
     def update_ack(self, packet_number):
-        if self.largest_acked is None or packet_number > self.largest_acked:
-            self.largest_acked = packet_number
-            self.received_ranges[packet_number] = True
+       self.received_ranges.add(packet_number)
 
     def get_ack_ranges(self):
-        pass
+        ranges = []
 
+        for pn in sorted(self.received_ranges):
+            if ranges and pn == ranges[-1][1] + 1:
+                ranges[-1][1] = pn
+            else:
+                ranges.append((pn, pn))
+        return ranges
+    
+    
     def handle_data_frame(self, frame_data):
         stream_id, message_id, message_start_offset, message_length, offset, data, typ = frame_data
         # Process the received data frame (e.g., store it, update state, etc.)
-        self.update_ack(message_id)  # Update ACK for the received message ID
+    
+    def send_ack_frame(self, to):
+        ack_ranges = self.get_ack_ranges()
+        ack_frame = make_ack_frame(0, self.largest_acked, self.ack_delay, len(ack_ranges), ack_ranges)
+
 
     
         
