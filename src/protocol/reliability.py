@@ -26,7 +26,7 @@ class UnReliableSocket:
 class Sender:
 
     def __init__(self, endpoint, address, session_id):
-        self.endpoint = UnReliableSocket(address)
+        self.endpoint = endpoint
         self.address = address
         self.session_id = session_id
 
@@ -67,8 +67,8 @@ class Sender:
 
 class Receiver:
 
-    def __init__(self, address):
-        self.endpoint = UnReliableSocket(address)
+    def __init__(self, endpoint):
+        self.endpoint = endpoint
         self.buffered_frames = {}
         self.largest_acked = None
         self.ranges_count = 0
