@@ -50,8 +50,8 @@ class Sender:
         self.buffered_frames.append(frame)
         return 
 
-    def handle_ack_frame(self, ack_frame):
-        _ , _ , _ , ack_ranges = decode_frame(FrameType.ACK, ack_frame)
+    def handle_ack_frame(self, ack_data):
+        _ , _ , _ , ack_ranges = ack_data
         for range_ in ack_ranges:
             start, end = range_
             for pn in list(self.unacked_packets.keys()):
@@ -83,7 +83,8 @@ class Receiver:
             return  # Duplicate packet, ignore
         
         for frame in frame_list:
-            frame_type, _ , frame_data = decode_frame(frame[0], frame[1:])
+            frame_type = frame[0]
+            frame_data = decode_frame(frame[0], frame[4:])
             if frame_type == FrameType.DATA:
                 self.handle_data_frame(frame_data)
 
@@ -110,7 +111,7 @@ class Receiver:
     
     def send_ack_frame(self, to):
         ack_ranges = self.get_ack_ranges()
-        ack_frame = make_ack_frame(0, self.largest_acked, self.ack_delay, len(ack_ranges), ack_ranges)
+        ack_frame = make_ack_frame(0, self.largest_acked or 0, self.ack_delay, len(ack_ranges), ack_ranges)
 
     
     

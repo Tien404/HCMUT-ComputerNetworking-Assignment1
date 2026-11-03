@@ -14,7 +14,7 @@ def parse_packet(raw: bytes):
     frame_count = int.from_bytes(packet_header[6:8], "big")
         # ssid 16 byte
         # pn 8 byte
-    i = 0;
+    i = 0
     while i < frame_count:
         frame_header = raw[0:4]
             # frame_type: 1B
@@ -23,7 +23,7 @@ def parse_packet(raw: bytes):
         frame_data = raw[4: 4+frame_length]
         raw = raw[4+frame_length:]
 
-        frame_list = frame_list + [frame_header + frame_data]
+        frame_list.append(frame_header + frame_data)
         i = i + 1
         
     return packet_header, frame_list
@@ -43,8 +43,8 @@ def make_packet_header(flag: int, length:int, frame_count:int, session_id: int, 
     
 def make_packet(flag: int, ssid: int, pn: int, frame_list: list) -> bytes:
     body = b''.join(frame_list)
-    length = 32 + len(packet)
-    packet = make_packet_header(flag, len(packet), len(frame_list), ssid, pn) + body
+    length = 32 + len(body)
+    packet = make_packet_header(flag, length, len(frame_list), ssid, pn) + body
     return packet
     
 def make_frame_header(frame_type: int, flag: int, frame: bytes) -> bytes:
@@ -66,7 +66,7 @@ def make_data_frame(flag: int, stream_id: int, message_id: int, message_start_of
     return frame 
   
 
-def make_ack_frame(flag: int, largest_ack:int , ack_delay:int, ack_count:int, ack_ranges:tuple ) -> bytes:
+def make_ack_frame(flag: int, largest_ack:int , ack_delay:int, ack_count:int, ack_ranges:list ) -> bytes:
     frame = b''
     frame += largest_ack.to_bytes(4, "big")
     frame += ack_delay.to_bytes(8, "big")
