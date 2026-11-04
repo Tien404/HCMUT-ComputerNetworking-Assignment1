@@ -152,7 +152,7 @@ class Receiver:
         self.endpoint.udp_send(packet, to)
 
 
-# TODO: Event loop: route ACK to Sender, DATA to Receiver, then send current ACK.
+# TODO: route ACK to Sender, DATA to Receiver, then send current ACK.
 # Pass only next_expected from decode_ack_body() to Sender.handle_ack().
 # Deliver pop_packet() results in connection order.
 
