@@ -20,21 +20,20 @@ python3 -m pip install -r requirements.txt
 
 On Windows, use `.venv\Scripts\activate` to activate the environment.
 
-## Configuration checks
+## Run
 
 ```bash
 # Server
-python3 -B -m src.server --check
+python3 -B -m src.server
 
 # Client A
-python3 -B -m src.client.main --udp-port 9100 --http-port 8080 --check
+python3 -B -m src.client.main --udp-port 9100 --http-port 8080
 
 # Client B
-python3 -B -m src.client.main --udp-port 9101 --http-port 8081 --check
+python3 -B -m src.client.main --udp-port 9101 --http-port 8081
 ```
 
-The default server address is `127.0.0.1:9000`. These commands only check
-configuration; they do not open sockets or start the application yet.
+The default server address is `127.0.0.1:9000`.
 
 ## Tests
 
