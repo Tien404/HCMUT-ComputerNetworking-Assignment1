@@ -1,11 +1,12 @@
-def encrypt(header, data, packet_number, key):
-    # TODO: Use a standard AEAD library; authenticate header and DATA/control payloads.
-    # Guarantee nonce uniqueness per key/direction and include overhead in the MTU budget.
-    # Do not send data until encryption and key establishment are implemented.
+def encrypt(header, data, nonce_counter, key):
+    # TODO: Use a standard AEAD library and a separate nonce counter per key/direction.
+    # DATA sequence repeats on retry; it cannot identify every encryption operation.
+    # Cache the complete encrypted datagram for retransmission, including its nonce.
+    # Leave room for nonce/tag in the MTU; encryption/key exchange are still TODO.
     pass
 
 
-def decrypt(header, data, packet_number, key):
-    # TODO: Verify authenticity and replay rules before decode/state mutation/ACK/liveness.
-    # Never accept unauthenticated plaintext as a successful decryption result.
+def decrypt(header, data, nonce_counter, key):
+    # TODO: Authenticate before reliability processing; identical retries still need an ACK.
+    # A pass stub must not be treated as working decryption.
     pass

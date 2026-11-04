@@ -1,53 +1,83 @@
+import time
 import unittest
-from src.common.constants import ConnectionState
-from src.protocol.reliability import new_connection, heartbeat_due, idle_expired
+from src.protocol.reliability import Sender, Receiver
 
 
-class BasicStateTests(unittest.TestCase):
-    def test_connections_do_not_share_mutable_state(self):
-        first, second = new_connection(), new_connection()
-        first["sent_packets"][1] = {}
-        first["tx_flow"]["streams"][1] = {}
-        self.assertEqual(second["sent_packets"], {})
-        self.assertEqual(second["tx_flow"]["streams"], {})
+class PlaceholderEndpoint:
+    def __init__(self):
+        self.sent = []
 
-    def test_sending_ping_does_not_refresh_receive_idle(self):
-        connection = new_connection()
-        connection["state"] = ConnectionState.ESTABLISHED
-        self.assertTrue(heartbeat_due(connection, 5))
-        connection["last_ping_submitted"] = 5
-        self.assertFalse(heartbeat_due(connection, 6))
-        self.assertTrue(idle_expired(connection, 30))
-
+    def udp_send(self, data, to):
+        self.sent.append(data)
 
 
 class ReliabilityTests(unittest.TestCase):
-    def test_coverage_and_selective_missing_ranges(self):
-        # TODO: Merge out-of-order/duplicate ranges and return only missing subranges.
-        pass
+    def setUp(self):
+        self.endpoint = PlaceholderEndpoint()
+        self.sender = Sender(self.endpoint, ("127.0.0.1", 9000), 1)
+        self.receiver = Receiver(self.endpoint)
 
-    def test_empty_message_requires_metadata_ack(self):
-        # TODO: Empty content is complete only after its metadata packet is acknowledged.
-        pass
+    def test_send_and_cumulative_ack(self):
+        self.sender.add_data(1, 1, 0, b"a")
+        self.sender.send_packet()
+        self.sender.add_data(2, 1, 0, b"b")
+        self.sender.send_packet()
+        self.assertEqual(len(self.endpoint.sent), 2)
 
-    def test_rtt_ack_delay_loss_threshold_and_rto(self):
-        # TODO: Check eligible RTT samples, ACK-delay adjustment, loss delay and RTO backoff.
-        pass
+        self.sender.handle_ack(2)
+        self.assertEqual(self.sender.unacked_packets, {})
+        self.assertEqual(self.sender.send_base, 2)
+        self.assertIsNone(self.sender.deadline)
 
-    def test_heartbeat_does_not_confirm_data(self):
-        # TODO: PING gets PONG; PONG gets no PONG; neither acknowledges DATA.
-        pass
+    def test_three_duplicate_acks(self):
+        self.sender.add_data(1, 1, 0, b"a")
+        self.sender.send_packet()
+        self.sender.handle_ack(0)
+        self.sender.handle_ack(0)
+        self.assertEqual(len(self.endpoint.sent), 1)
 
-    def test_ack_blocks_retry_and_late_ack(self):
-        # TODO: Retry only uncovered data with fresh PNs; late ACKs cancel redundant retries.
-        # In-flight bytes and completion must each be retired/reported exactly once.
-        pass
+        self.sender.handle_ack(0)
+        self.assertEqual(len(self.endpoint.sent), 2)
+        self.assertEqual(self.endpoint.sent[0], self.endpoint.sent[1])
 
-    def test_loss_threshold_before_rto(self):
-        # TODO: Require later-ACK evidence; prefer packet/time-threshold loss over RTO.
-        pass
+    def test_timeout_retransmits(self):
+        self.sender.add_data(1, 1, 0, b"a")
+        self.sender.send_packet()
+        self.sender.deadline = time.monotonic() - 1
+        self.sender.check_timeout()
+        self.assertEqual(self.endpoint.sent[0], self.endpoint.sent[1])
+        self.assertEqual(self.sender.rto, 2)
 
-    def test_send_only_stream_cannot_receive(self):
-        # TODO: An awaitable receive must reject a send-only stream.
-        # A blocked file stream must not block a separate chat stream.
-        pass
+        self.sender.handle_ack(1)
+        self.assertIsNone(self.sender.srtt)
+
+    def test_first_rtt_sample(self):
+        self.sender.update_rtt(0.2)
+        self.assertEqual(self.sender.srtt, 0.2)
+        self.assertEqual(self.sender.rttvar, 0.1)
+
+    def test_receive_out_of_order(self):
+        self.sender.add_data(1, 1, 0, b"a")
+        self.sender.send_packet()
+        self.sender.add_data(2, 1, 0, b"b")
+        self.sender.send_packet()
+
+        self.receiver.receive_packet(self.endpoint.sent[1])
+        self.assertIsNone(self.receiver.pop_packet())
+        self.receiver.receive_packet(self.endpoint.sent[0])
+        first = self.receiver.pop_packet()
+        second = self.receiver.pop_packet()
+        assert first is not None
+        assert second is not None
+        self.assertEqual(first[4], b"a")
+        self.assertEqual(second[4], b"b")
+
+    def test_receive_duplicate(self):
+        self.sender.add_data(1, 1, 0, b"a")
+        self.sender.send_packet()
+        self.receiver.receive_packet(self.endpoint.sent[0])
+        self.receiver.receive_packet(self.endpoint.sent[0])
+        packet = self.receiver.pop_packet()
+        assert packet is not None
+        self.assertEqual(packet[4], b"a")
+        self.assertIsNone(self.receiver.pop_packet())
